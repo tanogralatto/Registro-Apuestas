@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Registro de Apuestas</title>
+<style>
+  :root{
+    --bg:#0F1512;
+    --surface:#16211B;
+    --surface-2:#1D2B23;
+    --border:#2A3A31;
+    --text:#EDE7D9;
+    --text-dim:#8FA096;
+    --gold:#D4A24C;
+    --win:#4F9B6E;
+    --loss:#C1443C;
+    --void:#7C8B81;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    padding-bottom:60px;
+    min-height:100vh;
+  }
+  .mono{
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  header.top{
+    padding:22px 18px 16px;
+    border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg, var(--surface-2), var(--bg));
+  }
+  header.top h1{
+    margin:0;
+    font-size:13px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    font-weight:800;
+    color:var(--gold);
+  }
+  header.top p{
+    margin:4px 0 0;
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:-0.3px;
+  }
+
+  /* Scoreboard */
+  .scoreboard{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:1px;
+    background:var(--border);
+    margin:16px;
+    border-radius:12px;
+    overflow:hidden;
+    border:1px solid var(--border);
+  }
+  .stat{
+    background:var(--surface);
+    padding:14px 8px;
+    text-align:center;
+  }
+  .stat .label{
+    font-size:10px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin-bottom:6px;
+  }
+  .stat .value{
+    font-size:19px;
+    font-weight:700;
+  }
+  .pos{color:var(--win);}
+  .neg{color:var(--loss);}
+  .neu{color:var(--text);}
+
+  /* Chart */
+  .chart-card{
+    margin:16px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:14px 14px 8px;
+  }
+  .chart-card .label{
+    font-size:10px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin-bottom:8px;
+  }
+  .chart-empty{
+    color:var(--text-dim);
+    font-size:13px;
+    text-align:center;
+    padding:30px 0;
+  }
+
+  /* Tabs */
+  .tabs-bar{
+    overflow-x:auto;
+    white-space:nowrap;
+    padding:16px 16px 0;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .tabs-bar::-webkit-scrollbar{ display:none; }
+  .tab-pill{
+    display:inline-block;
+    padding:7px 14px;
+    margin-right:8px;
+    border-radius:20px;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+    background:var(--surface);
+  }
+  .tab-pill.active{
+    background:var(--gold);
+    color:#1A1408;
+    border-color:var(--gold);
+  }
+
+  /* Strategy field + manage */
+  .strategy-field-row{ display:flex; gap:8px; }
+  .strategy-field-row select{ flex:1; }
+  .btn-manage{
+    flex-shrink:0;
+    padding:0 14px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--surface-2);
+    color:var(--text-dim);
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+  }
+
+  /* Strategy modal */
+  .modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.6);
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:50;
+  }
+  .modal-panel{
+    background:var(--surface);
+    width:100%;
+    max-width:480px;
+    border-radius:16px 16px 0 0;
+    padding:18px;
+    max-height:75vh;
+    overflow-y:auto;
+    border-top:1px solid var(--border);
+  }
+  .modal-panel h3{
+    margin:0 0 14px;
+    font-size:12px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--gold);
+    font-weight:800;
+  }
+  .strategy-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .strategy-row input{
+    flex:1;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:9px 10px;
+    border-radius:8px;
+    font-size:15px;
+    font-family:inherit;
+  }
+  .strategy-row .del-strategy{
+    width:30px; height:30px;
+    border-radius:50%;
+    background:var(--loss);
+    color:#fff;
+    border:none;
+    font-size:13px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .strategy-empty{
+    color:var(--text-dim);
+    font-size:13px;
+    padding:6px 0 14px;
+  }
+  .strategy-add{
+    display:flex;
+    gap:8px;
+    margin-top:6px;
+  }
+  .strategy-add button{
+    flex-shrink:0;
+    padding:0 16px;
+    border-radius:8px;
+    border:none;
+    background:var(--gold);
+    color:#1A1408;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .modal-close{
+    width:100%;
+    padding:12px;
+    margin-top:16px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:transparent;
+    color:var(--text-dim);
+    cursor:pointer;
+    font-size:13px;
+  }
+  .ticket-main .strategy-tag{
+    display:inline-block;
+    font-size:9.5px;
+    letter-spacing:0.3px;
+    color:var(--gold);
+    margin-top:4px;
+    font-weight:700;
+  }
+
+  /* Form */
+  .form-card{
+    margin:16px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px;
+  }
+  .form-card h2{
+    font-size:12px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin:0 0 14px;
+    font-weight:800;
+  }
+  .field{
+    margin-bottom:12px;
+  }
+  .field label{
+    display:block;
+    font-size:11px;
+    color:var(--text-dim);
+    margin-bottom:5px;
+    letter-spacing:0.3px;
+  }
+  .field input, .field select{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:11px 10px;
+    border-radius:8px;
+    font-size:16px;
+    font-family:inherit;
+  }
+  .field input:focus, .field select:focus{
+    outline:none;
+    border-color:var(--gold);
+  }
+  .row2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .btn{
+    width:100%;
+    padding:13px;
+    border-radius:8px;
+    border:none;
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  .btn-primary{
+    background:var(--gold);
+    color:#1A1408;
+  }
+  .btn-cancel{
+    background:transparent;
+    color:var(--text-dim);
+    border:1px solid var(--border);
+    margin-top:8px;
+  }
+  .hint{
+    font-size:11px;
+    color:var(--text-dim);
+    margin-top:-4px;
+    margin-bottom:12px;
+  }
+
+  /* List */
+  .list-section{
+    margin:22px 16px 0;
+  }
+  .list-section h2{
+    font-size:11px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin:0 0 10px 4px;
+  }
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--text-dim);
+    font-size:13px;
+    border:1px dashed var(--border);
+    border-radius:12px;
+  }
+
+  .ticket{
+    position:relative;
+    display:flex;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    margin-bottom:10px;
+    overflow:visible;
+    cursor:pointer;
+  }
+  .ticket-notch{
+    position:absolute;
+    width:16px; height:16px;
+    background:var(--bg);
+    border-radius:50%;
+    top:50%;
+    transform:translateY(-50%);
+  }
+  .ticket-notch.left{ left:-8px; }
+  .ticket-notch.right{ right:calc(96px - 8px); }
+  .ticket-main{
+    flex:1;
+    padding:12px 14px;
+    min-width:0;
+  }
+  .ticket-main .bookie{
+    font-size:14px;
+    font-weight:700;
+  }
+  .ticket-main .meta{
+    font-size:11.5px;
+    color:var(--text-dim);
+    margin-top:3px;
+  }
+  .ticket-main .meta .mono{
+    color:var(--text-dim);
+  }
+  .ticket-stub{
+    width:96px;
+    flex-shrink:0;
+    border-left:2px dashed var(--border);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:10px 6px;
+    text-align:center;
+  }
+  .ticket-stub .profit{
+    font-size:14px;
+    font-weight:700;
+  }
+  .ticket-stub .result-tag{
+    font-size:9px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    margin-top:5px;
+    padding:2px 7px;
+    border-radius:20px;
+    font-weight:700;
+  }
+  .tag-gan{ background:rgba(79,155,110,0.18); color:var(--win); }
+  .tag-perd{ background:rgba(193,68,60,0.18); color:var(--loss); }
+  .tag-medio_gan{ background:rgba(79,155,110,0.12); color:var(--win); }
+  .tag-medio_perd{ background:rgba(193,68,60,0.12); color:var(--loss); }
+  .tag-void{ background:rgba(124,139,129,0.18); color:var(--void); }
+  .tag-cashout{ background:rgba(212,162,74,0.18); color:var(--gold); }
+
+  .delete-btn{
+    position:absolute;
+    top:-8px; right:-6px;
+    width:24px; height:24px;
+    border-radius:50%;
+    background:var(--loss);
+    color:#fff;
+    border:2px solid var(--bg);
+    font-size:13px;
+    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Registro</h1>
+  <p>Control de Apuestas</p>
+</header>
+
+<div class="tabs-bar" id="tabs-bar"></div>
+
+<div class="scoreboard">
+  <div class="stat">
+    <div class="label">ROI</div>
+    <div class="value mono" id="stat-roi">—</div>
+  </div>
+  <div class="stat">
+    <div class="label">Beneficio</div>
+    <div class="value mono" id="stat-profit">—</div>
+  </div>
+  <div class="stat">
+    <div class="label">Apuestas</div>
+    <div class="value mono" id="stat-count">0</div>
+  </div>
+</div>
+
+<div class="chart-card">
+  <div class="label">Evolución del beneficio</div>
+  <div id="chart-wrap"></div>
+</div>
+
+<div class="form-card">
+  <h2 id="form-title">Cargar apuesta</h2>
+  <div class="field">
+    <label for="f-date">Fecha</label>
+    <input type="date" id="f-date">
+  </div>
+  <div class="field">
+    <label for="f-bookie">Casa de apuestas</label>
+    <input type="text" id="f-bookie" placeholder="Ej: Bet365">
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label for="f-odds">Cuota</label>
+      <input type="number" step="0.01" min="1.01" id="f-odds" placeholder="1.85">
+    </div>
+    <div class="field">
+      <label for="f-stake">Stake ($)</label>
+      <input type="number" step="0.01" min="0" id="f-stake" placeholder="1000">
+    </div>
+  </div>
+  <div class="field">
+    <label for="f-strategy">Estrategia</label>
+    <div class="strategy-field-row">
+      <select id="f-strategy"></select>
+      <button type="button" class="btn-manage" id="btn-manage-strategies">Gestionar</button>
+    </div>
+  </div>
+  <div class="field">
+    <label for="f-result">Resultado</label>
+    <select id="f-result">
+      <option value="gan">Ganada</option>
+      <option value="perd">Perdida</option>
+      <option value="medio_gan">Medio ganada</option>
+      <option value="medio_perd">Medio perdida</option>
+      <option value="void">Nula / Void</option>
+      <option value="cashout">Cashout</option>
+    </select>
+  </div>
+  <div class="field" id="cashout-field" style="display:none;">
+    <label for="f-cashout">Beneficio neto del cashout ($)</label>
+    <input type="number" step="0.01" id="f-cashout" placeholder="Puede ser negativo">
+  </div>
+  <button class="btn btn-primary" id="btn-save">Guardar apuesta</button>
+  <button class="btn btn-cancel" id="btn-cancel" style="display:none;">Cancelar edición</button>
+</div>
+
+<div class="list-section">
+  <h2>Historial</h2>
+  <div id="list-wrap"></div>
+</div>
+
+<div class="modal-overlay" id="strategy-modal" style="display:none;">
+  <div class="modal-panel">
+    <h3>Gestionar estrategias</h3>
+    <div id="strategy-list"></div>
+    <div class="strategy-add">
+      <input type="text" id="new-strategy-input" placeholder="Nueva estrategia (ej: Value betting)">
+      <button type="button" id="btn-add-strategy">Agregar</button>
+    </div>
+    <button class="modal-close" id="btn-close-modal">Cerrar</button>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'apuestas_tracker_data';
+const STRATEGY_KEY = 'apuestas_tracker_strategies';
+const UNASSIGNED = '__unassigned__';
+let bets = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let strategies = JSON.parse(localStorage.getItem(STRATEGY_KEY) || '[]');
+let editingId = null;
+let activeTab = 'all';
+
+const els = {
+  date: document.getElementById('f-date'),
+  bookie: document.getElementById('f-bookie'),
+  odds: document.getElementById('f-odds'),
+  stake: document.getElementById('f-stake'),
+  strategy: document.getElementById('f-strategy'),
+  result: document.getElementById('f-result'),
+  cashout: document.getElementById('f-cashout'),
+  cashoutField: document.getElementById('cashout-field'),
+  saveBtn: document.getElementById('btn-save'),
+  cancelBtn: document.getElementById('btn-cancel'),
+  formTitle: document.getElementById('form-title'),
+  listWrap: document.getElementById('list-wrap'),
+  chartWrap: document.getElementById('chart-wrap'),
+  statRoi: document.getElementById('stat-roi'),
+  statProfit: document.getElementById('stat-profit'),
+  statCount: document.getElementById('stat-count'),
+  tabsBar: document.getElementById('tabs-bar'),
+  manageBtn: document.getElementById('btn-manage-strategies'),
+  modal: document.getElementById('strategy-modal'),
+  strategyList: document.getElementById('strategy-list'),
+  newStrategyInput: document.getElementById('new-strategy-input'),
+  addStrategyBtn: document.getElementById('btn-add-strategy'),
+  closeModalBtn: document.getElementById('btn-close-modal'),
+};
+
+els.date.valueAsDate = new Date();
+
+els.result.addEventListener('change', () => {
+  els.cashoutField.style.display = els.result.value === 'cashout' ? 'block' : 'none';
+});
+
+function fmtMoney(n){
+  const sign = n < 0 ? '-' : '';
+  const abs = Math.abs(n).toLocaleString('es-AR', {minimumFractionDigits:0, maximumFractionDigits:2});
+  return sign + '$' + abs;
+}
+
+function calcProfit(bet){
+  const s = bet.stake, o = bet.odds;
+  switch(bet.result){
+    case 'gan': return s * (o - 1);
+    case 'perd': return -s;
+    case 'medio_gan': return (s/2) * (o - 1);
+    case 'medio_perd': return -(s/2);
+    case 'void': return 0;
+    case 'cashout': return bet.cashout;
+    default: return 0;
+  }
+}
+
+const resultLabels = {
+  gan:'Ganada', perd:'Perdida', medio_gan:'Medio ganada',
+  medio_perd:'Medio perdida', void:'Nula', cashout:'Cashout'
+};
+
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
+  render();
+}
+
+function saveStrategies(){
+  localStorage.setItem(STRATEGY_KEY, JSON.stringify(strategies));
+}
+
+function populateStrategySelect(){
+  if(strategies.length === 0){
+    els.strategy.innerHTML = '<option value="">Sin estrategias creadas</option>';
+    return;
+  }
+  els.strategy.innerHTML = strategies.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+}
+
+function resetForm(){
+  editingId = null;
+  els.date.valueAsDate = new Date();
+  els.bookie.value = '';
+  els.odds.value = '';
+  els.stake.value = '';
+  populateStrategySelect();
+  els.result.value = 'gan';
+  els.cashout.value = '';
+  els.cashoutField.style.display = 'none';
+  els.formTitle.textContent = 'Cargar apuesta';
+  els.saveBtn.textContent = 'Guardar apuesta';
+  els.cancelBtn.style.display = 'none';
+}
+
+els.cancelBtn.addEventListener('click', resetForm);
+
+els.saveBtn.addEventListener('click', () => {
+  const date = els.date.value;
+  const bookie = els.bookie.value.trim();
+  const odds = parseFloat(els.odds.value);
+  const stake = parseFloat(els.stake.value);
+  const result = els.result.value;
+  const cashout = parseFloat(els.cashout.value);
+  const strategy = els.strategy.value;
+
+  if(!date || !bookie || !odds || !stake || odds <= 1 || stake <= 0){
+    alert('Completá fecha, casa, cuota (>1) y stake (>0).');
+    return;
+  }
+  if(result === 'cashout' && isNaN(cashout)){
+    alert('Ingresá el beneficio neto del cashout.');
+    return;
+  }
+
+  const betData = { date, bookie, odds, stake, result, cashout: isNaN(cashout) ? 0 : cashout, strategy };
+
+  if(editingId){
+    const idx = bets.findIndex(b => b.id === editingId);
+    bets[idx] = { ...bets[idx], ...betData };
+  } else {
+    bets.push({ id: Date.now() + '-' + Math.random().toString(36).slice(2,7), ...betData });
+  }
+  save();
+  resetForm();
+});
+
+function editBet(id){
+  const bet = bets.find(b => b.id === id);
+  if(!bet) return;
+  editingId = id;
+  els.date.value = bet.date;
+  els.bookie.value = bet.bookie;
+  els.odds.value = bet.odds;
+  els.stake.value = bet.stake;
+  populateStrategySelect();
+  if(bet.strategy && strategies.includes(bet.strategy)){
+    els.strategy.value = bet.strategy;
+  }
+  els.result.value = bet.result;
+  els.cashout.value = bet.result === 'cashout' ? bet.cashout : '';
+  els.cashoutField.style.display = bet.result === 'cashout' ? 'block' : 'none';
+  els.formTitle.textContent = 'Editar apuesta';
+  els.saveBtn.textContent = 'Guardar cambios';
+  els.cancelBtn.style.display = 'block';
+  document.querySelector('.form-card').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function deleteBet(id, evt){
+  evt.stopPropagation();
+  if(!confirm('¿Eliminar esta apuesta?')) return;
+  bets = bets.filter(b => b.id !== id);
+  if(editingId === id) resetForm();
+  save();
+}
+
+function getFilteredBets(){
+  if(activeTab === 'all') return bets;
+  if(activeTab === UNASSIGNED) return bets.filter(b => !b.strategy || !strategies.includes(b.strategy));
+  return bets.filter(b => b.strategy === activeTab);
+}
+
+function renderTabs(){
+  const hasUnassigned = bets.some(b => !b.strategy || !strategies.includes(b.strategy));
+  let html = `<span class="tab-pill${activeTab === 'all' ? ' active' : ''}" data-tab="all">Todas</span>`;
+  strategies.forEach(s => {
+    html += `<span class="tab-pill${activeTab === s ? ' active' : ''}" data-tab="${escapeHtml(s)}">${escapeHtml(s)}</span>`;
+  });
+  if(hasUnassigned){
+    html += `<span class="tab-pill${activeTab === UNASSIGNED ? ' active' : ''}" data-tab="${UNASSIGNED}">Sin asignar</span>`;
+  }
+  els.tabsBar.innerHTML = html;
+  els.tabsBar.querySelectorAll('.tab-pill').forEach(el => {
+    el.addEventListener('click', () => {
+      activeTab = el.dataset.tab;
+      render();
+    });
+  });
+}
+
+function renderChart(){
+  const bets = getFilteredBets();
+  if(bets.length === 0){
+    els.chartWrap.innerHTML = '<div class="chart-empty">Todavía no hay apuestas cargadas</div>';
+    return;
+  }
+  const sorted = [...bets].sort((a,b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  let cum = 0;
+  const points = sorted.map(b => { cum += calcProfit(b); return cum; });
+
+  const W = 320, H = 120, PAD = 8;
+  const min = Math.min(0, ...points);
+  const max = Math.max(0, ...points);
+  const range = (max - min) || 1;
+
+  const xStep = points.length > 1 ? (W - PAD*2) / (points.length - 1) : 0;
+  const toY = v => H - PAD - ((v - min) / range) * (H - PAD*2);
+  const zeroY = toY(0);
+
+  const coords = points.map((v,i) => [PAD + i*xStep, toY(v)]);
+  const pathD = coords.map((c,i) => (i===0?'M':'L') + c[0].toFixed(1) + ',' + c[1].toFixed(1)).join(' ');
+  const last = points[points.length-1];
+  const lineColor = last > 0 ? 'var(--win)' : (last < 0 ? 'var(--loss)' : 'var(--text-dim)');
+
+  els.chartWrap.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:120px; display:block;">
+      <line x1="0" y1="${zeroY.toFixed(1)}" x2="${W}" y2="${zeroY.toFixed(1)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+      <path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${coords[coords.length-1][0].toFixed(1)}" cy="${coords[coords.length-1][1].toFixed(1)}" r="3.5" fill="${lineColor}"/>
+    </svg>
+  `;
+}
+
+function renderList(){
+  const bets = getFilteredBets();
+  if(bets.length === 0){
+    els.listWrap.innerHTML = '<div class="empty-state">Sin apuestas en esta pestaña.</div>';
+    return;
+  }
+  const sorted = [...bets].sort((a,b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  els.listWrap.innerHTML = sorted.map(bet => {
+    const profit = calcProfit(bet);
+    const profitClass = profit > 0 ? 'pos' : (profit < 0 ? 'neg' : 'neu');
+    const dateFmt = new Date(bet.date + 'T00:00:00').toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'2-digit'});
+    return `
+      <div class="ticket" data-id="${bet.id}">
+        <div class="ticket-notch left"></div>
+        <div class="ticket-main">
+          <div class="bookie">${escapeHtml(bet.bookie)}</div>
+          <div class="meta mono">${dateFmt} · cuota ${bet.odds.toFixed(2)} · stake ${fmtMoney(bet.stake)}</div>
+          ${bet.strategy && strategies.includes(bet.strategy) ? `<div class="strategy-tag">${escapeHtml(bet.strategy)}</div>` : ''}
+        </div>
+        <div class="ticket-notch right"></div>
+        <div class="ticket-stub">
+          <div class="profit mono ${profitClass}">${profit >= 0 ? '+' : ''}${fmtMoney(profit)}</div>
+          <div class="result-tag tag-${bet.result}">${resultLabels[bet.result]}</div>
+        </div>
+        <div class="delete-btn" onclick="deleteBet('${bet.id}', event)">✕</div>
+      </div>
+    `;
+  }).join('');
+
+  document.querySelectorAll('.ticket').forEach(el => {
+    el.addEventListener('click', () => editBet(el.dataset.id));
+  });
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function renderStats(){
+  const bets = getFilteredBets();
+  const totalStake = bets.reduce((s,b) => s + b.stake, 0);
+  const totalProfit = bets.reduce((s,b) => s + calcProfit(b), 0);
+  const roi = totalStake > 0 ? (totalProfit / totalStake) * 100 : 0;
+
+  els.statCount.textContent = bets.length;
+  els.statProfit.textContent = (totalProfit >= 0 ? '+' : '') + fmtMoney(totalProfit);
+  els.statProfit.className = 'value mono ' + (totalProfit > 0 ? 'pos' : (totalProfit < 0 ? 'neg' : 'neu'));
+  els.statRoi.textContent = bets.length > 0 ? (roi >= 0 ? '+' : '') + roi.toFixed(1) + '%' : '—';
+  els.statRoi.className = 'value mono ' + (roi > 0 ? 'pos' : (roi < 0 ? 'neg' : 'neu'));
+}
+
+function render(){
+  renderTabs();
+  renderStats();
+  renderChart();
+  renderList();
+}
+
+function openStrategyModal(){
+  renderStrategyModalList();
+  els.modal.style.display = 'flex';
+}
+
+function closeStrategyModal(){
+  els.modal.style.display = 'none';
+  els.newStrategyInput.value = '';
+  populateStrategySelect();
+  render();
+}
+
+function renderStrategyModalList(){
+  if(strategies.length === 0){
+    els.strategyList.innerHTML = '<div class="strategy-empty">Todavía no creaste ninguna estrategia.</div>';
+    return;
+  }
+  els.strategyList.innerHTML = strategies.map((s, idx) => `
+    <div class="strategy-row" data-idx="${idx}">
+      <input type="text" value="${escapeHtml(s)}" data-original="${escapeHtml(s)}">
+      <button type="button" class="del-strategy" data-idx="${idx}">✕</button>
+    </div>
+  `).join('');
+
+  els.strategyList.querySelectorAll('input').forEach(input => {
+    input.addEventListener('change', () => {
+      const idx = parseInt(input.closest('.strategy-row').dataset.idx, 10);
+      renameStrategy(idx, input.value.trim());
+    });
+  });
+  els.strategyList.querySelectorAll('.del-strategy').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      deleteStrategy(idx);
+    });
+  });
+}
+
+function renameStrategy(idx, newName){
+  const oldName = strategies[idx];
+  if(!newName || newName === oldName){
+    renderStrategyModalList();
+    return;
+  }
+  if(strategies.includes(newName)){
+    alert('Ya existe una estrategia con ese nombre.');
+    renderStrategyModalList();
+    return;
+  }
+  strategies[idx] = newName;
+  bets.forEach(b => { if(b.strategy === oldName) b.strategy = newName; });
+  if(activeTab === oldName) activeTab = newName;
+  saveStrategies();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
+  renderStrategyModalList();
+}
+
+function deleteStrategy(idx){
+  const name = strategies[idx];
+  if(!confirm(`¿Eliminar la estrategia "${name}"? Las apuestas ya cargadas con esta estrategia quedarán como "Sin asignar".`)) return;
+  strategies.splice(idx, 1);
+  if(activeTab === name) activeTab = 'all';
+  saveStrategies();
+  renderStrategyModalList();
+}
+
+els.manageBtn.addEventListener('click', openStrategyModal);
+els.closeModalBtn.addEventListener('click', closeStrategyModal);
+els.modal.addEventListener('click', (e) => { if(e.target === els.modal) closeStrategyModal(); });
+
+els.addStrategyBtn.addEventListener('click', () => {
+  const name = els.newStrategyInput.value.trim();
+  if(!name) return;
+  if(strategies.includes(name)){
+    alert('Ya existe una estrategia con ese nombre.');
+    return;
+  }
+  strategies.push(name);
+  saveStrategies();
+  els.newStrategyInput.value = '';
+  renderStrategyModalList();
+});
+
+els.newStrategyInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); els.addStrategyBtn.click(); }
+});
+
+populateStrategySelect();
+render();
+</script>
+</body>
+</html>
