@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Registro de Apuestas</title>
+<style>
+  :root{--bg:#0F1512;--surface:#16211B;--surface-2:#1D2B23;--border:#2A3A31;--text:#EDE7D9;--text-dim:#8FA096;--gold:#D4A24C;--win:#4F9B6E;--loss:#C1443C;--void:#7C8B81}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;padding-bottom:60px;min-height:100vh}
+  .mono{font-family:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+  header.top{padding:22px 18px 16px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--surface-2),var(--bg))}
+  header.top h1{margin:0;font-size:13px;letter-spacing:3px;text-transform:uppercase;font-weight:800;color:var(--gold)}
+  header.top p{margin:4px 0 0;font-size:22px;font-weight:700;letter-spacing:-.3px}
+  .scoreboard{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);margin:16px;border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+  .stat{background:var(--surface);padding:14px 8px;text-align:center}
+  .stat .label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px}
+  .stat .value{font-size:19px;font-weight:700}
+  .pos{color:var(--win)}.neg{color:var(--loss)}.neu{color:var(--text)}
+  .chart-card{margin:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 14px 8px}
+  .chart-card .label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+  .chart-empty{color:var(--text-dim);font-size:13px;text-align:center;padding:30px 0}
+  .tabs-bar{overflow-x:auto;white-space:nowrap;padding:16px 16px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs-bar::-webkit-scrollbar{display:none}
+  .tab-pill{display:inline-block;padding:7px 14px;margin-right:8px;border-radius:20px;border:1px solid var(--border);color:var(--text-dim);font-size:12.5px;font-weight:700;cursor:pointer;background:var(--surface)}
+  .tab-pill.active{background:var(--gold);color:#1A1408;border-color:var(--gold)}
+  .strategy-field-row{display:flex;gap:8px}.strategy-field-row select{flex:1}
+  .btn-manage{flex-shrink:0;padding:0 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-dim);font-size:12px;font-weight:700;cursor:pointer}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:50}
+  .modal-panel{background:var(--surface);width:100%;max-width:480px;border-radius:16px 16px 0 0;padding:18px;max-height:75vh;overflow-y:auto;border-top:1px solid var(--border)}
+  .modal-panel h3{margin:0 0 14px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:800}
+  .strategy-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .strategy-row input{flex:1;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:9px 10px;border-radius:8px;font-size:15px;font-family:inherit}
+  .strategy-row .del-strategy{width:30px;height:30px;border-radius:50%;background:var(--loss);color:#fff;border:none;font-size:13px;cursor:pointer;flex-shrink:0}
+  .strategy-empty{color:var(--text-dim);font-size:13px;padding:6px 0 14px}
+  .strategy-add{display:flex;gap:8px;margin-top:6px}
+  .strategy-add button{flex-shrink:0;padding:0 16px;border-radius:8px;border:none;background:var(--gold);color:#1A1408;font-weight:700;cursor:pointer}
+  .modal-close{width:100%;padding:12px;margin-top:16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;font-size:13px}
+  .ticket-main .strategy-tag{display:inline-block;font-size:9.5px;letter-spacing:.3px;color:var(--gold);margin-top:4px;font-weight:700}
+  .form-card{margin:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+  .form-card h2{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:0 0 14px;font-weight:800}
+  .field{margin-bottom:12px}.field label{display:block;font-size:11px;color:var(--text-dim);margin-bottom:5px;letter-spacing:.3px}
+  .field input,.field select{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:11px 10px;border-radius:8px;font-size:16px;font-family:inherit}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--gold)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{width:100%;padding:13px;border-radius:8px;border:none;font-size:14px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer}
+  .btn-primary{background:var(--gold);color:#1A1408}.btn-cancel{background:transparent;color:var(--text-dim);border:1px solid var(--border);margin-top:8px}
+  .hint{font-size:11px;color:var(--text-dim);margin-top:-4px;margin-bottom:12px}
+  .list-section{margin:22px 16px 0}.list-section h2{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin:0 0 10px 4px}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--text-dim);font-size:13px;border:1px dashed var(--border);border-radius:12px}
+  .ticket{position:relative;display:flex;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:visible;cursor:pointer}
+  .ticket-notch{position:absolute;width:16px;height:16px;background:var(--bg);border-radius:50%;top:50%;transform:translateY(-50%)}
+  .ticket-notch.left{left:-8px}.ticket-notch.right{right:calc(96px - 8px)}
+  .ticket-main{flex:1;padding:12px 14px;min-width:0}.ticket-main .bookie{font-size:14px;font-weight:700}
+  .ticket-main .meta{font-size:11.5px;color:var(--text-dim);margin-top:3px}.ticket-main .meta .mono{color:var(--text-dim)}
+  .ticket-stub{width:96px;flex-shrink:0;border-left:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 6px;text-align:center}
+  .ticket-stub .profit{font-size:14px;font-weight:700}.ticket-stub .result-tag{font-size:9px;letter-spacing:.5px;text-transform:uppercase;margin-top:5px;padding:2px 7px;border-radius:20px;font-weight:700}
+  .tag-gan{background:rgba(79,155,110,.18);color:var(--win)}.tag-perd{background:rgba(193,68,60,.18);color:var(--loss)}
+  .tag-medio_gan{background:rgba(79,155,110,.12);color:var(--win)}.tag-medio_perd{background:rgba(193,68,60,.12);color:var(--loss)}
+  .tag-void{background:rgba(124,139,129,.18);color:var(--void)}.tag-cashout{background:rgba(212,162,74,.18);color:var(--gold)}
+  .tag-pendiente{background:rgba(91,141,190,.18);color:#5B8DBE}
+  .ticket-main .desc{font-size:12px;color:var(--text);opacity:.75;margin-top:2px;font-style:italic;white-space:normal;overflow-wrap:anywhere}
+  .delete-btn{position:absolute;top:-8px;right:-6px;width:24px;height:24px;border-radius:50%;background:var(--loss);color:#fff;border:2px solid var(--bg);font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .backup-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px}
+  .backup-actions button{padding:12px 8px;border-radius:8px;border:1px solid var(--gold);background:var(--surface-2);color:var(--gold);font-size:12px;font-weight:700;cursor:pointer}
+  .backup-note{margin:-7px 16px 16px;color:var(--text-dim);font-size:11px;text-align:center}
+</style>
+</head>
+<body>
+<header class="top"><h1>Registro</h1><p>Control de Apuestas</p></header>
+<div class="tabs-bar" id="tabs-bar"></div>
+<div class="scoreboard">
+  <div class="stat"><div class="label">ROI</div><div class="value mono" id="stat-roi">—</div></div>
+  <div class="stat"><div class="label">Beneficio</div><div class="value mono" id="stat-profit">—</div></div>
+  <div class="stat"><div class="label">Apuestas</div><div class="value mono" id="stat-count">0</div></div>
+</div>
+
+<div class="backup-actions">
+  <button type="button" id="btn-export-backup">📤 Exportar respaldo</button>
+  <button type="button" id="btn-import-backup">📥 Importar respaldo</button>
+  <input type="file" id="backup-file" accept=".json,application/json" hidden>
+</div>
+<div class="backup-note">Exportá periódicamente una copia de tus apuestas y guardala en Archivos.</div>
+<div class="form-card" id="capture-card">
+  <h2>📷 Registrar desde captura</h2>
+  <p style="font-size:13px;color:var(--text-dim);line-height:1.45;margin:0 0 12px">Elegí una captura del ticket de apuesta. La lectura automática completa el formulario para que revises los datos antes de guardar.</p>
+  <input type="file" id="capture-file" accept="image/*" hidden>
+  <button type="button" class="btn btn-primary" id="btn-capture">Elegir captura</button>
+  <div id="capture-status" role="status" style="font-size:12px;color:var(--text-dim);margin-top:10px"></div>
+  <details id="ocr-debug" style="margin-top:10px;font-size:12px;color:var(--text-dim)">
+    <summary>Texto reconocido (diagnóstico)</summary>
+    <pre id="ocr-raw" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto;padding:8px;background:var(--input);border-radius:8px"></pre>
+  </details>
+</div>
+
+<div class="chart-card"><div class="label">Evolución del beneficio</div><div id="chart-wrap"></div></div>
+<div class="form-card">
+  <h2 id="form-title">Cargar apuesta</h2>
+  <div class="field"><label for="f-date">Fecha</label><input type="date" id="f-date"></div>
+  <div class="field"><label for="f-bookie">Casa de apuestas</label><input type="text" id="f-bookie" list="bookie-list" placeholder="Ej: Bet365" autocomplete="off"><datalist id="bookie-list"></datalist></div>
+  <div class="field"><label for="f-desc">Descripción</label><input type="text" id="f-desc" placeholder="Ej: River vs Boca - Over 2.5"></div>
+  <div class="row2">
+    <div class="field"><label for="f-odds">Cuota</label><input type="number" step="0.01" min="1.01" id="f-odds" placeholder="1.85"></div>
+    <div class="field"><label for="f-stake">Stake ($)</label><input type="number" step="0.01" min="0" id="f-stake" placeholder="1000"></div>
+  </div>
+  <div class="field"><label for="f-strategy">Estrategia</label><div class="strategy-field-row"><select id="f-strategy"></select><button type="button" class="btn-manage" id="btn-manage-strategies">Gestionar</button></div></div>
+  <div class="field"><label for="f-result">Resultado</label><select id="f-result">
+    <option value="pendiente">Pendiente</option><option value="gan">Ganada</option><option value="perd">Perdida</option><option value="medio_gan">Medio ganada</option><option value="medio_perd">Medio perdida</option><option value="void">Nula / Void</option><option value="cashout">Cashout</option>
+  </select></div>
+  <div class="field" id="cashout-field" style="display:none"><label for="f-cashout">Beneficio neto del cashout ($)</label><input type="number" step="0.01" id="f-cashout" placeholder="Puede ser negativo"></div>
+  <button class="btn btn-primary" id="btn-save">Guardar apuesta</button>
+  <button class="btn btn-cancel" id="btn-cancel" style="display:none">Cancelar edición</button>
+</div>
+<div class="list-section"><h2>Historial</h2><div id="list-wrap"></div></div>
+<div class="modal-overlay" id="strategy-modal" style="display:none">
+  <div class="modal-panel"><h3>Gestionar estrategias</h3><div id="strategy-list"></div><div class="strategy-add"><input type="text" id="new-strategy-input" placeholder="Nueva estrategia (ej: Value betting)"><button type="button" id="btn-add-strategy">Agregar</button></div><button class="modal-close" id="btn-close-modal">Cerrar</button></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script>
+'use strict';
+const STORAGE_KEY='apuestas_tracker_data',STRATEGY_KEY='apuestas_tracker_strategies',BOOKIE_KEY='apuestas_tracker_bookies',UNASSIGNED='__unassigned__';
+let bets=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+let strategies=JSON.parse(localStorage.getItem(STRATEGY_KEY)||'[]');
+let bookies=JSON.parse(localStorage.getItem(BOOKIE_KEY)||'[]');
+let editingId=null,activeTab='all';
+const els={
+ date:document.getElementById('f-date'),bookie:document.getElementById('f-bookie'),bookieList:document.getElementById('bookie-list'),desc:document.getElementById('f-desc'),
+ odds:document.getElementById('f-odds'),stake:document.getElementById('f-stake'),strategy:document.getElementById('f-strategy'),result:document.getElementById('f-result'),
+ cashout:document.getElementById('f-cashout'),cashoutField:document.getElementById('cashout-field'),saveBtn:document.getElementById('btn-save'),cancelBtn:document.getElementById('btn-cancel'),
+ formTitle:document.getElementById('form-title'),listWrap:document.getElementById('list-wrap'),chartWrap:document.getElementById('chart-wrap'),
+ statRoi:document.getElementById('stat-roi'),statProfit:document.getElementById('stat-profit'),statCount:document.getElementById('stat-count'),tabsBar:document.getElementById('tabs-bar'),
+ manageBtn:document.getElementById('btn-manage-strategies'),modal:document.getElementById('strategy-modal'),strategyList:document.getElementById('strategy-list'),
+ newStrategyInput:document.getElementById('new-strategy-input'),addStrategyBtn:document.getElementById('btn-add-strategy'),closeModalBtn:document.getElementById('btn-close-modal')
+};
+els.date.valueAsDate=new Date();
+els.result.addEventListener('change',()=>{els.cashoutField.style.display=els.result.value==='cashout'?'block':'none'});
+function fmtMoney(n){const sign=n<0?'-':'';const abs=Math.abs(n).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:2});return sign+'$'+abs}
+function calcProfit(bet){const s=Number(bet.stake),o=Number(bet.odds);switch(bet.result){case'gan':return s*(o-1);case'perd':return-s;case'medio_gan':return(s/2)*(o-1);case'medio_perd':return-(s/2);case'void':return 0;case'cashout':return Number(bet.cashout)||0;case'pendiente':return 0;default:return 0}}
+function isResolved(bet){return bet.result!=='pendiente'}
+const resultLabels={gan:'Ganada',perd:'Perdida',medio_gan:'Medio ganada',medio_perd:'Medio perdida',void:'Nula',cashout:'Cashout',pendiente:'Pendiente'};
+function escapeHtml(str){const div=document.createElement('div');div.textContent=String(str??'');return div.innerHTML}
+function populateBookieList(){els.bookieList.innerHTML=bookies.map(b=>`<option value="${escapeHtml(b)}">`).join('')}
+function rememberBookie(name){if(!name)return;if(!bookies.some(b=>b.toLowerCase()===name.toLowerCase())){bookies.push(name);localStorage.setItem(BOOKIE_KEY,JSON.stringify(bookies));populateBookieList()}}
+function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(bets));render()}
+function saveStrategies(){localStorage.setItem(STRATEGY_KEY,JSON.stringify(strategies))}
+function populateStrategySelect(){if(strategies.length===0){els.strategy.innerHTML='<option value="">Sin estrategias creadas</option>';return}els.strategy.innerHTML=strategies.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('')}
+function resetForm(){editingId=null;els.date.valueAsDate=new Date();els.bookie.value='';els.desc.value='';els.odds.value='';els.stake.value='';populateStrategySelect();els.result.value='pendiente';els.cashout.value='';els.cashoutField.style.display='none';els.formTitle.textContent='Cargar apuesta';els.saveBtn.textContent='Guardar apuesta';els.cancelBtn.style.display='none'}
+els.cancelBtn.addEventListener('click',resetForm);
+els.saveBtn.addEventListener('click',()=>{
+ const date=els.date.value,bookie=els.bookie.value.trim(),desc=els.desc.value.trim(),odds=parseFloat(els.odds.value),stake=parseFloat(els.stake.value),result=els.result.value,cashout=parseFloat(els.cashout.value),strategy=els.strategy.value;
+ if(!date||!bookie||!odds||!stake||odds<=1||stake<=0){alert('Completá fecha, casa, cuota (>1) y stake (>0).');return}
+ if(result==='cashout'&&isNaN(cashout)){alert('Ingresá el beneficio neto del cashout.');return}
+ const betData={date,bookie,desc,odds,stake,result,cashout:isNaN(cashout)?0:cashout,strategy};
+ if(editingId){const idx=bets.findIndex(b=>b.id===editingId);if(idx>=0)bets[idx]={...bets[idx],...betData}}
+ else bets.push({id:Date.now()+'-'+Math.random().toString(36).slice(2,7),...betData});
+ rememberBookie(bookie);save();resetForm();
+});
+function editBet(id){const bet=bets.find(b=>b.id===id);if(!bet)return;editingId=id;els.date.value=bet.date;els.bookie.value=bet.bookie;els.desc.value=bet.desc||'';els.odds.value=bet.odds;els.stake.value=bet.stake;populateStrategySelect();if(bet.strategy&&strategies.includes(bet.strategy))els.strategy.value=bet.strategy;els.result.value=bet.result;els.cashout.value=bet.result==='cashout'?bet.cashout:'';els.cashoutField.style.display=bet.result==='cashout'?'block':'none';els.formTitle.textContent='Editar apuesta';els.saveBtn.textContent='Guardar cambios';els.cancelBtn.style.display='block';document.querySelector('.form-card').scrollIntoView({behavior:'smooth',block:'start'})}
+function deleteBet(id,evt){evt.stopPropagation();if(!confirm('¿Eliminar esta apuesta?'))return;bets=bets.filter(b=>b.id!==id);if(editingId===id)resetForm();save()}
+function getFilteredBets(){if(activeTab==='all')return bets;if(activeTab===UNASSIGNED)return bets.filter(b=>!b.strategy||!strategies.includes(b.strategy));return bets.filter(b=>b.strategy===activeTab)}
+function renderTabs(){const hasUnassigned=bets.some(b=>!b.strategy||!strategies.includes(b.strategy));let html=`<span class="tab-pill${activeTab==='all'?' active':''}" data-tab="all">Todas</span>`;strategies.forEach(s=>{html+=`<span class="tab-pill${activeTab===s?' active':''}" data-tab="${escapeHtml(s)}">${escapeHtml(s)}</span>`});if(hasUnassigned)html+=`<span class="tab-pill${activeTab===UNASSIGNED?' active':''}" data-tab="${UNASSIGNED}">Sin asignar</span>`;els.tabsBar.innerHTML=html;els.tabsBar.querySelectorAll('.tab-pill').forEach(el=>el.addEventListener('click',()=>{activeTab=el.dataset.tab;render()}))}
+function renderChart(){const resolved=getFilteredBets().filter(isResolved);if(resolved.length===0){els.chartWrap.innerHTML='<div class="chart-empty">Todavía no hay apuestas cargadas</div>';return}const sorted=[...resolved].sort((a,b)=>a.date.localeCompare(b.date)||String(a.id).localeCompare(String(b.id)));let cum=0;const points=sorted.map(b=>cum+=calcProfit(b));const W=320,H=120,PAD=8,min=Math.min(0,...points),max=Math.max(0,...points),range=(max-min)||1,xStep=points.length>1?(W-PAD*2)/(points.length-1):0,toY=v=>H-PAD-((v-min)/range)*(H-PAD*2),zeroY=toY(0),coords=points.map((v,i)=>[PAD+i*xStep,toY(v)]),pathD=coords.map((c,i)=>(i===0?'M':'L')+c[0].toFixed(1)+','+c[1].toFixed(1)).join(' '),last=points[points.length-1],lineColor=last>0?'var(--win)':last<0?'var(--loss)':'var(--text-dim)';els.chartWrap.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:120px;display:block"><line x1="0" y1="${zeroY.toFixed(1)}" x2="${W}" y2="${zeroY.toFixed(1)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/><path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${coords[coords.length-1][0].toFixed(1)}" cy="${coords[coords.length-1][1].toFixed(1)}" r="3.5" fill="${lineColor}"/></svg>`}
+function renderList(){const filtered=getFilteredBets();if(filtered.length===0){els.listWrap.innerHTML='<div class="empty-state">Sin apuestas en esta pestaña.</div>';return}const sorted=[...filtered].sort((a,b)=>b.date.localeCompare(a.date)||String(b.id).localeCompare(String(a.id)));els.listWrap.innerHTML=sorted.map(bet=>{const pending=!isResolved(bet),profit=calcProfit(bet),profitClass=pending?'neu':profit>0?'pos':profit<0?'neg':'neu',dateFmt=new Date(bet.date+'T00:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'});return `<div class="ticket" data-id="${escapeHtml(bet.id)}"><div class="ticket-notch left"></div><div class="ticket-main"><div class="bookie">${escapeHtml(bet.bookie)}</div><div class="meta mono">${dateFmt} · cuota ${Number(bet.odds).toFixed(2)} · stake ${fmtMoney(Number(bet.stake))}</div>${bet.desc?`<div class="desc">${escapeHtml(bet.desc)}</div>`:''}${bet.strategy&&strategies.includes(bet.strategy)?`<div class="strategy-tag">${escapeHtml(bet.strategy)}</div>`:''}</div><div class="ticket-notch right"></div><div class="ticket-stub"><div class="profit mono ${profitClass}">${pending?'—':(profit>=0?'+':'')+fmtMoney(profit)}</div><div class="result-tag tag-${bet.result}">${resultLabels[bet.result]||escapeHtml(bet.result)}</div></div><div class="delete-btn" role="button" aria-label="Eliminar apuesta">✕</div></div>`}).join('');document.querySelectorAll('.ticket').forEach(el=>{el.addEventListener('click',()=>editBet(el.dataset.id));el.querySelector('.delete-btn').addEventListener('click',evt=>deleteBet(el.dataset.id,evt))})}
+function renderStats(){const filtered=getFilteredBets(),resolved=filtered.filter(isResolved),totalStake=resolved.reduce((s,b)=>s+Number(b.stake),0),totalProfit=resolved.reduce((s,b)=>s+calcProfit(b),0),roi=totalStake>0?(totalProfit/totalStake)*100:0;els.statCount.textContent=filtered.length;els.statProfit.textContent=(totalProfit>=0?'+':'')+fmtMoney(totalProfit);els.statProfit.className='value mono '+(totalProfit>0?'pos':totalProfit<0?'neg':'neu');els.statRoi.textContent=resolved.length?(roi>=0?'+':'')+roi.toFixed(1)+'%':'—';els.statRoi.className='value mono '+(roi>0?'pos':roi<0?'neg':'neu')}
+function render(){renderTabs();renderStats();renderChart();renderList()}
+function openStrategyModal(){renderStrategyModalList();els.modal.style.display='flex'}
+function closeStrategyModal(){els.modal.style.display='none';els.newStrategyInput.value='';populateStrategySelect();render()}
+function renderStrategyModalList(){if(strategies.length===0){els.strategyList.innerHTML='<div class="strategy-empty">Todavía no creaste ninguna estrategia.</div>';return}els.strategyList.innerHTML=strategies.map((s,idx)=>`<div class="strategy-row" data-idx="${idx}"><input type="text" value="${escapeHtml(s)}"><button type="button" class="del-strategy" data-idx="${idx}">✕</button></div>`).join('');els.strategyList.querySelectorAll('input').forEach(input=>input.addEventListener('change',()=>renameStrategy(parseInt(input.closest('.strategy-row').dataset.idx,10),input.value.trim())));els.strategyList.querySelectorAll('.del-strategy').forEach(btn=>btn.addEventListener('click',()=>deleteStrategy(parseInt(btn.dataset.idx,10))))}
+function renameStrategy(idx,newName){const oldName=strategies[idx];if(!newName||newName===oldName){renderStrategyModalList();return}if(strategies.includes(newName)){alert('Ya existe una estrategia con ese nombre.');renderStrategyModalList();return}strategies[idx]=newName;bets.forEach(b=>{if(b.strategy===oldName)b.strategy=newName});if(activeTab===oldName)activeTab=newName;saveStrategies();localStorage.setItem(STORAGE_KEY,JSON.stringify(bets));renderStrategyModalList()}
+function deleteStrategy(idx){const name=strategies[idx];if(!confirm(`¿Eliminar la estrategia "${name}"? Las apuestas ya cargadas con esta estrategia quedarán como "Sin asignar".`))return;strategies.splice(idx,1);if(activeTab===name)activeTab='all';saveStrategies();renderStrategyModalList()}
+els.manageBtn.addEventListener('click',openStrategyModal);els.closeModalBtn.addEventListener('click',closeStrategyModal);els.modal.addEventListener('click',e=>{if(e.target===els.modal)closeStrategyModal()});
+els.addStrategyBtn.addEventListener('click',()=>{const name=els.newStrategyInput.value.trim();if(!name)return;if(strategies.includes(name)){alert('Ya existe una estrategia con ese nombre.');return}strategies.push(name);saveStrategies();els.newStrategyInput.value='';renderStrategyModalList()});
+els.newStrategyInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();els.addStrategyBtn.click()}});
+
+/* RESPALDO: exportación e importación */
+const BACKUP_VERSION=1;
+document.getElementById('btn-export-backup').addEventListener('click',exportBackup);
+document.getElementById('btn-import-backup').addEventListener('click',()=>document.getElementById('backup-file').click());
+document.getElementById('backup-file').addEventListener('change',importBackup);
+
+function exportBackup(){
+ try{
+  const backup={app:'Registro de Apuestas',version:BACKUP_VERSION,exportedAt:new Date().toISOString(),
+   bets:JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'),
+   strategies:JSON.parse(localStorage.getItem(STRATEGY_KEY)||'[]'),
+   bookies:JSON.parse(localStorage.getItem(BOOKIE_KEY)||'[]')};
+  const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json;charset=utf-8'});
+  const url=URL.createObjectURL(blob),link=document.createElement('a'),date=new Date().toISOString().slice(0,10);
+  link.href=url;link.download=`respaldo-apuestas-${date}.json`;document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+  alert('Respaldo preparado.\n\nApuestas: '+backup.bets.length+'\nEstrategias: '+backup.strategies.length+'\nCasas: '+backup.bookies.length+'\n\nComprobá que el archivo se haya descargado.');
+ }catch(error){console.error(error);alert('No se pudo crear el respaldo. No se modificó ningún dato.')}
+}
+async function importBackup(event){
+ const input=event.target,file=input.files&&input.files[0];if(!file)return;
+ try{
+  const backup=JSON.parse(await file.text());
+  if(!backup||backup.app!=='Registro de Apuestas'||backup.version!==BACKUP_VERSION||!Array.isArray(backup.bets)||!Array.isArray(backup.strategies)||!Array.isArray(backup.bookies))throw new Error('Formato de respaldo no válido.');
+  const allowed=['pendiente','gan','perd','medio_gan','medio_perd','void','cashout'];
+  const valid=backup.bets.every(b=>b&&typeof b.id==='string'&&typeof b.date==='string'&&typeof b.bookie==='string'&&Number.isFinite(Number(b.odds))&&Number.isFinite(Number(b.stake))&&allowed.includes(b.result));
+  if(!valid||!backup.strategies.every(s=>typeof s==='string')||!backup.bookies.every(b=>typeof b==='string'))throw new Error('El archivo contiene datos incompletos o inválidos.');
+  const current=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+  if(!confirm('El respaldo contiene '+backup.bets.length+' apuestas, '+backup.strategies.length+' estrategias y '+backup.bookies.length+' casas.\n\nActualmente hay '+current.length+' apuestas guardadas.\n\nLa importación REEMPLAZARÁ los datos actuales. Exportá primero una copia si querés conservarlos.\n\n¿Continuar?'))return;
+  const previous=[[STORAGE_KEY,localStorage.getItem(STORAGE_KEY)],[STRATEGY_KEY,localStorage.getItem(STRATEGY_KEY)],[BOOKIE_KEY,localStorage.getItem(BOOKIE_KEY)]];
+  try{
+   localStorage.setItem(STORAGE_KEY,JSON.stringify(backup.bets));
+   localStorage.setItem(STRATEGY_KEY,JSON.stringify(backup.strategies));
+   localStorage.setItem(BOOKIE_KEY,JSON.stringify(backup.bookies));
+  }catch(err){
+   for(const [key,value] of previous){try{if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value)}catch(rollbackErr){console.error(rollbackErr)}}
+   throw err;
+  }
+  alert('Respaldo restaurado. La aplicación se recargará.');location.reload();
+ }catch(error){console.error(error);alert('No se pudo importar el archivo.\n\nVerificá que sea un respaldo válido.')}
+ finally{input.value=''}
+}
+
+
+/* LECTURA DE CAPTURAS: muestra el estado y los errores en pantalla */
+const captureInput=document.getElementById('capture-file');
+const captureStatus=document.getElementById('capture-status');
+const captureButton=document.getElementById('btn-capture');
+captureButton.addEventListener('click',()=>{captureStatus.textContent='Seleccioná una captura desde Fotos o Archivos.';captureInput.click()});
+captureInput.addEventListener('change',async()=>{
+ const file=captureInput.files&&captureInput.files[0];
+ if(!file)return;
+ captureButton.disabled=true;
+ captureStatus.textContent='Imagen seleccionada. Preparando lector de texto…';
+ try{
+  if(!file.type.startsWith('image/'))throw new Error('El archivo elegido no parece ser una imagen.');
+  if(!window.Tesseract)throw new Error('Safari no pudo cargar el lector OCR desde Internet. Comprobá la conexión, recargá la página y probá otra vez.');
+  captureStatus.textContent='Leyendo captura. La primera vez puede tardar por la descarga del idioma…';
+  const result=await Tesseract.recognize(file,'eng',{
+   logger:m=>{
+    if(m.status==='recognizing text')captureStatus.textContent='Reconociendo texto: '+Math.round((m.progress||0)*100)+'%';
+    else if(m.status==='loading tesseract core')captureStatus.textContent='Cargando motor OCR…';
+    else if(m.status==='loading language traineddata')captureStatus.textContent='Descargando idioma OCR…';
+    else if(m.status==='initializing api')captureStatus.textContent='Iniciando lector OCR…';
+   }
+  });
+  const raw=(result.data&&result.data.text)||'';
+  document.getElementById('ocr-raw').textContent=raw;
+  document.getElementById('ocr-debug').open=true;
+  if(raw.trim().length<5)throw new Error('El lector se inició, pero no pudo reconocer texto. Probá una captura completa y nítida.');
+  fillFromCapture(raw);
+  const filled=[]; if(els.bookie.value)filled.push('casa'); if(els.desc.value)filled.push('descripción'); if(els.odds.value)filled.push('cuota'); if(els.stake.value)filled.push('importe');
+  captureStatus.textContent=filled.length?'Lectura terminada. Detecté: '+filled.join(', ')+'. Revisá los campos y tocá “Guardar apuesta”.':'Leí la imagen, pero no pude identificar los campos. Probá otra captura más nítida.';
+  document.querySelector('.form-card:not(#capture-card)').scrollIntoView({behavior:'smooth',block:'start'});
+ }catch(err){
+  console.error('Error OCR:',err);
+  captureStatus.textContent='No se pudo procesar la captura: '+(err&&err.message?err.message:String(err));
+ }finally{captureButton.disabled=false;captureInput.value=''}
+});
+function fillFromCapture(raw){
+ const text=raw.replace(/[ \t]+/g,' ').trim();
+ const lines=text.split('\n').map(s=>s.trim()).filter(Boolean);
+ // Casa: reconocer nombres comunes; si no se detecta, dejar el campo para completar.
+ const knownBookies=['Bet365','Betano','Stake','Jugabet','Betwinner','Sportmarket','Bovada','1xBet','Codere','Betsson','Bplay','BetWarrior','William Hill','Pinnacle','Unibet'];
+ const foundBookie=knownBookies.find(b=>new RegExp(b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i').test(text));
+ if(foundBookie)els.bookie.value=foundBookie;
+ // Cuota: buscar etiquetas cercanas y luego valores con formato decimal; evitar cuotas mínimas irreales.
+ let odds=null;
+ const oddsPatterns=[
+  /(?:cuota|odds|price|cuota decimal)\s*[:#]?\s*([1-9]\d*(?:[.,]\d{1,3})?)/i,
+  /(?:cuota seleccionada|cuota final)\s*[:#]?\s*([1-9]\d*(?:[.,]\d{1,3})?)/i
+ ];
+ for(const re of oddsPatterns){const m=text.match(re);if(m){const n=parseFloat(m[1].replace(',','.'));if(n>1&&n<1000){odds=n;break}}}
+ // En tickets de Betano la cuota puede aparecer sola, sin la etiqueta "Cuota".
+ if(odds===null){
+  const candidates=[...text.matchAll(/(?<![\d.,])([1-9]\d?\.\d{2,3})(?![\d.,])/g)]
+   .map(m=>Number(m[1])).filter(n=>n>=1.01&&n<=100);
+  if(candidates.length)odds=candidates[0];
+ }
+ // Stake/apuesta: usar etiquetas explícitas para no confundirlo con posible ganancia.
+ let stake=null;
+ const stakePatterns=[
+  /(?:importe apostado|importe de apuesta|monto apostado|stake|apuesta|importe|total apostado)\s*[:$]?\s*\$?\s*([\d.,]+)/i,
+  /(?:amount wagered|bet amount|wager)\s*[:$]?\s*\$?\s*([\d.,]+)/i
+ ];
+ for(const re of stakePatterns){const m=text.match(re);if(m){const n=parseLocalizedNumber(m[1]);if(n>0){stake=n;break}}}
+ if(odds!==null)els.odds.value=odds;
+ if(stake!==null)els.stake.value=stake;
+ // Fecha explícita en formatos dd/mm/yyyy, yyyy-mm-dd o dd-mm-yyyy.
+ let dateMatch=text.match(/\b(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})\b/);
+ let dateValue='';
+ if(dateMatch)dateValue=`${dateMatch[1]}-${String(dateMatch[2]).padStart(2,'0')}-${String(dateMatch[3]).padStart(2,'0')}`;
+ else{
+  dateMatch=text.match(/\b(\d{1,2})[/. -](\d{1,2})[/. -](20\d{2})\b/);
+  if(dateMatch)dateValue=`${dateMatch[3]}-${String(dateMatch[2]).padStart(2,'0')}-${String(dateMatch[1]).padStart(2,'0')}`;
+ }
+ if(dateValue)els.date.value=dateValue;
+ // Descripción: extraer selección y equipos aunque el OCR los mezcle con iconos/cuota.
+ // En Betano la explicación del mercado aparece entre la selección y los equipos.
+ const selectionMatch=text.match(/\b(over|under|más\s+de|menos\s+de)\s*(\d+(?:[.,]\d+)?)/i);
+ let descriptionParts=[];
+ if(selectionMatch) descriptionParts.push((selectionMatch[1]+' '+selectionMatch[2]).replace(/\s+/g,' ').trim());
+ const cleanedLines=lines.map(line=>line
+   .replace(/\b(?:over|under|más\s+de|menos\s+de)\s*\d+(?:[.,]\d+)?\b/ig,' ')
+   .replace(/\b\d+[.,]\d{2,3}\b/g,' ')
+   .replace(/marcador\s*\d+\s*[-:]\s*\d+/ig,' ')
+   .replace(/\s+/g,' ').trim());
+ const ignored=/asiático|asiatico|más\/menos|total de goles|primer tiempo|^tiempo$|^marcador(?:\s+.*)?$|apuesta|ganancias|cuota|odds|stake|importe|anulada|ganada|perdida|pendiente|cash.?out|simple|^\$|^\d+[.,]\d+$|^\d+\s*[-:]\s*\d+$/i;
+ let teamLines=cleanedLines.filter(line=>line.length>=3&&line.length<=60&&!ignored.test(line));
+ // Filtrar nombres/logos y otros fragmentos comunes; conservar los dos candidatos más probables.
+ teamLines=teamLines.filter(line=>!/^betano$|^fútbol$|^football$|^ganancias$/i.test(line));
+ // Eliminar residuos típicos del OCR de iconos (por ejemplo, "@ @") y líneas con pocos caracteres alfabéticos.
+ teamLines=teamLines.filter(line=>(line.match(/[A-Za-zÀ-ÿ]/g)||[]).length>=4&&!/@/.test(line));
+ if(selectionMatch){
+   // Si la línea contiene la selección, no usarla como nombre de equipo.
+   teamLines=teamLines.filter(line=>!/^\s*(over|under|más\s+de|menos\s+de)\b/i.test(line));
+ }
+ descriptionParts.push(...teamLines.slice(0,2));
+ if(descriptionParts.length>1){
+   const unique=descriptionParts.filter((x,i)=>descriptionParts.findIndex(y=>y.toLowerCase()===x.toLowerCase())===i);
+   els.desc.value=unique.join(' - ').slice(0,220);
+ }
+ els.result.value=/\banulada\b/i.test(text)?'void':'pendiente';
+ els.cashoutField.style.display='none';
+}
+function parseLocalizedNumber(value){
+ let s=String(value).replace(/[^\d,.-]/g,'');
+ if(!s)return NaN;
+ // Si hay coma y punto, el último separador se interpreta como decimal.
+ if(s.includes(',')&&s.includes('.')){
+  if(s.lastIndexOf(',')>s.lastIndexOf('.'))s=s.replace(/\./g,'').replace(',','.');
+  else s=s.replace(/,/g,'');
+ }else if(s.includes(',')){
+  const parts=s.split(',');
+  s=parts.length===2&&parts[1].length<=2?s.replace(',','.'):s.replace(/,/g,'');
+ }else if((s.match(/\./g)||[]).length>1)s=s.replace(/\./g,'');
+ return Number(s);
+}
+
+populateStrategySelect();
+populateBookieList();
+render();
+</script>
+</body>
+</html>
